@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Gerenciador desktop e painel local do AutoMiner para Minecraft 1.21.1",
   "license": "MIT",
-  "repository": "github:joao5877/AutoMiner",
+  "repository": "github:JoaoMarcu/AutoMiner",
   "private": true,
   "scripts": {
     "dev": "next dev",

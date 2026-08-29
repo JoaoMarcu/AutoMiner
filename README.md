@@ -8,11 +8,20 @@ AutoMiner é um mod Fabric para Minecraft Java Edition 1.21.1, acompanhado por u
 - Fabric Loader compatível com 1.21.1
 - Windows 10 ou superior para o AutoMiner Manager
 
+## Downloads
+
+Os arquivos oficiais estarão disponíveis na página de releases do GitHub:
+
+- [Baixar AutoMiner Manager para Windows](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/AutoMiner-Setup.exe)
+- [Baixar mod AutoMiner 1.0.0](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/autominer-1.0.0.jar)
+- [Baixar checksums SHA-256](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/SHA256SUMS.txt)
+- [Abrir todas as releases](https://github.com/JoaoMarcu/AutoMiner/releases)
+
 ## Instalação
 
-Baixe `AutoMiner-Setup.exe` e execute o instalador. Ele não exige Node.js, Rust, Cargo ou Gradle. O Manager detecta o Game Directory, preserva outros mods e instala o AutoMiner, Fabric Loader e Fabric API compatíveis.
+Baixe o [AutoMiner Manager para Windows](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/AutoMiner-Setup.exe) e execute o instalador. Ele não exige Node.js, Rust, Cargo ou Gradle. O Manager detecta o Game Directory, preserva outros mods e instala o AutoMiner, Fabric Loader e Fabric API compatíveis.
 
-Também é possível instalar manualmente o JAR `autominer-1.0.0.jar` na pasta `mods` de uma instalação Fabric 1.21.1.
+Também é possível baixar o [JAR do AutoMiner](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/autominer-1.0.0.jar) e colocá-lo na pasta `mods` de uma instalação Fabric 1.21.1.
 
 ## Uso e configuração
 
