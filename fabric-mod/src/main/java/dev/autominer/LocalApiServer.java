@@ -1,0 +1,16 @@
+package dev.autominer;
+
+import com.sun.net.httpserver.*;
+import java.io.*;import java.net.*;import java.nio.charset.StandardCharsets;import java.util.concurrent.*;
+
+public final class LocalApiServer implements AutoCloseable {
+  private final AutoMinerController controller; private final ConfigManager configs; private HttpServer server;
+  public LocalApiServer(AutoMinerController controller,ConfigManager configs){this.controller=controller;this.configs=configs;}
+  public void start(int port)throws IOException{server=HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(),port),0);server.createContext("/api/config",this::config);server.createContext("/api/status",e->json(e,200,configs.gson().toJson(controller.telemetry())));server.createContext("/api/commands",this::command);server.createContext("/api/events",this::events);server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());server.start();}
+  private void config(HttpExchange e)throws IOException{cors(e);if("GET".equals(e.getRequestMethod())){json(e,200,configs.gson().toJson(controller.config()));return;}if("PUT".equals(e.getRequestMethod())){try{var body=new String(e.getRequestBody().readAllBytes(),StandardCharsets.UTF_8);if(body.length()>65536)throw new IllegalArgumentException("Payload muito grande");var cfg=configs.gson().fromJson(body,AutoMinerConfig.class);if(cfg==null)throw new IllegalArgumentException("JSON inválido");controller.replaceConfig(cfg);json(e,200,configs.gson().toJson(cfg));}catch(Exception x){json(e,400,"{\"error\":\"config_invalid\"}");}}else json(e,405,"{\"error\":\"method_not_allowed\"}");}
+  private void command(HttpExchange e)throws IOException{cors(e);if(!"POST".equals(e.getRequestMethod())){json(e,405,"{\"error\":\"method_not_allowed\"}");return;}String[] p=e.getRequestURI().getPath().split("/");String cmd=p.length>3?p[3]:"";if(!cmd.matches("start|pause|resume|stop|reload")){json(e,404,"{\"error\":\"unknown_command\"}");return;}controller.command(cmd);json(e,202,configs.gson().toJson(controller.telemetry()));}
+  private void events(HttpExchange e)throws IOException{cors(e);e.getResponseHeaders().set("Content-Type","text/event-stream");e.getResponseHeaders().set("Cache-Control","no-cache");e.sendResponseHeaders(200,0);try(var out=e.getResponseBody()){while(server!=null){String data="data: "+configs.gson().toJson(controller.telemetry())+"\n\n";out.write(data.getBytes(StandardCharsets.UTF_8));out.flush();Thread.sleep(500);}}catch(InterruptedException|IOException ignored) {}}
+  private void cors(HttpExchange e){String origin=e.getRequestHeaders().getFirst("Origin");if(origin!=null&&(origin.startsWith("http://localhost:")||origin.startsWith("http://127.0.0.1:")||origin.endsWith(".vercel.app")))e.getResponseHeaders().set("Access-Control-Allow-Origin",origin);e.getResponseHeaders().set("Access-Control-Allow-Methods","GET,PUT,POST,OPTIONS");e.getResponseHeaders().set("Access-Control-Allow-Headers","Content-Type");}
+  private void json(HttpExchange e,int status,String value)throws IOException{cors(e);byte[] bytes=value.getBytes(StandardCharsets.UTF_8);e.getResponseHeaders().set("Content-Type","application/json; charset=utf-8");e.sendResponseHeaders(status,bytes.length);try(var out=e.getResponseBody()){out.write(bytes);}}
+  @Override public void close(){if(server!=null){server.stop(0);server=null;}}
+}
