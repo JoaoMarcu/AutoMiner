@@ -12,6 +12,8 @@ pub enum ManagerError {
     Checksum,
     #[error("Nenhuma release válida encontrada")]
     NoRelease,
+    #[error("Repositório do AutoMiner ainda não configurado")]
+    RepositoryNotConfigured,
     #[error("Operação de arquivo falhou: {0}")]
     Io(String),
     #[error("Dados inválidos: {0}")]

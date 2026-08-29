@@ -2,6 +2,13 @@ import { Crosshair, MoveUpRight } from "lucide-react"
 import type { AutoMinerConfig, Telemetry } from "@/lib/autominer-types"
 
 export function TrajectoryView({ config, telemetry }: { config: AutoMinerConfig; telemetry: Telemetry }) {
+  if (!telemetry.online || !telemetry.player || !telemetry.camera) return (
+    <div className="flex min-h-72 flex-col items-center justify-center gap-2 rounded-xl border bg-card text-center">
+      <Crosshair className="size-6 text-muted-foreground" aria-hidden="true" />
+      <p className="font-mono text-xs">TRAJETÓRIA INDISPONÍVEL</p>
+      <p className="text-sm text-muted-foreground">Aguardando dados do Minecraft</p>
+    </div>
+  )
   return (
     <div className="trajectory-grid relative min-h-72 overflow-hidden rounded-xl border bg-card">
       <div className="absolute inset-x-0 top-4 flex items-center justify-between px-5 font-mono text-xs text-muted-foreground">

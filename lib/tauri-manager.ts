@@ -12,9 +12,13 @@ export interface DetectionReport {
   autominerInstalled: boolean
   configFound: boolean
   launcherPath: string | null
+  minecraftVersion: string | null
+  fabricLoaderVersion: string | null
+  fabricApiVersion: string | null
+  autominerVersion: string | null
 }
 
-export interface ModRelease { version: string; jarName: string; jarUrl: string; sha256?: string }
+export interface ModRelease { version: string; jarName: string; jarUrl: string; sha256?: string; changelog?: string; releaseUrl: string }
 export interface InstallResult { modVersion: string; modPath: string; fabricApiPath: string; backupCreated: boolean }
 export interface BackupInfo { name: string; path: string; createdAt: number; size: number }
 

@@ -12,8 +12,8 @@ export interface AutoMinerConfig {
 }
 export interface Vec3 { x: number; y: number; z: number }
 export interface Telemetry {
-  state: MinerState; online: boolean; blocksBroken: number; activeSeconds: number; speed: number
-  player: Vec3; camera: { yaw: number; pitch: number }; target: ({ id: string; position: Vec3; distance: number } | null)
+  state: MinerState | null; online: boolean; blocksBroken: number | null; activeSeconds: number | null; speed: number | null
+  player: Vec3 | null; camera: { yaw: number; pitch: number } | null; target: ({ id: string; position: Vec3; distance: number } | null)
   history: Array<{ id: string; position: Vec3 }>; lastError?: string
 }
 
@@ -31,4 +31,4 @@ export const DEFAULT_CONFIG: AutoMinerConfig = {
   advanced: { hud: true, apiPort: 8765, historySize: 8 },
 }
 
-export const OFFLINE_TELEMETRY: Telemetry = { state: "STOPPED", online: false, blocksBroken: 0, activeSeconds: 0, speed: 0, player: { x: 0, y: 0, z: 0 }, camera: { yaw: 0, pitch: 0 }, target: null, history: [] }
+export const OFFLINE_TELEMETRY: Telemetry = { state: null, online: false, blocksBroken: null, activeSeconds: null, speed: null, player: null, camera: null, target: null, history: [] }

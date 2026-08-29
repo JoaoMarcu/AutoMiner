@@ -14,6 +14,10 @@ pub struct DetectionReport {
     pub autominer_installed: bool,
     pub config_found: bool,
     pub launcher_path: Option<String>,
+    pub minecraft_version: Option<String>,
+    pub fabric_loader_version: Option<String>,
+    pub fabric_api_version: Option<String>,
+    pub autominer_version: Option<String>,
 }
 
 pub fn default_game_dir() -> Option<PathBuf> {
@@ -32,9 +36,23 @@ pub fn validate_game_dir(path: &Path) -> Result<PathBuf> {
     path.canonicalize().map_err(Into::into)
 }
 
-fn has_matching_jar(dir: &Path, predicate: impl Fn(&str) -> bool) -> bool {
-    std::fs::read_dir(dir).ok().into_iter().flatten().flatten().any(|entry| {
-        entry.file_name().to_str().map(|n| predicate(&n.to_lowercase())).unwrap_or(false)
+fn matching_jar_version(dir: &Path, prefix: &str) -> (bool, Option<String>) {
+    let entry = std::fs::read_dir(dir).ok().into_iter().flatten().flatten().find(|entry| {
+        entry.file_name().to_str().map(|name| {
+            let lower = name.to_lowercase(); lower.starts_with(prefix) && lower.ends_with(".jar")
+        }).unwrap_or(false)
+    });
+    let version = entry.as_ref().and_then(|entry| entry.file_name().to_str().map(str::to_string)).and_then(|name| {
+        name.strip_suffix(".jar").and_then(|stem| stem.strip_prefix(prefix)).filter(|value| !value.is_empty()).map(str::to_string)
+    });
+    (entry.is_some(), version)
+}
+
+fn fabric_loader_version(versions: &Path) -> Option<String> {
+    std::fs::read_dir(versions).ok()?.flatten().filter_map(|entry| entry.file_name().to_str().map(str::to_string)).find_map(|name| {
+        let rest = name.strip_prefix("fabric-loader-")?;
+        let (loader, game) = rest.split_once("-1.21.1")?;
+        (!loader.is_empty() && game.is_empty()).then(|| loader.to_string())
     })
 }
 
@@ -45,19 +63,19 @@ pub fn detect(selected: Option<String>) -> DetectionReport {
     if let Some(ref root) = game {
         let mods = root.join("mods");
         let versions = root.join("versions");
+        let minecraft_version = versions.join("1.21.1").is_dir().then(|| "1.21.1".to_string());
+        let fabric_loader_version = fabric_loader_version(&versions);
+        let (fabric_api_installed, fabric_api_version) = matching_jar_version(&mods, "fabric-api-");
+        let (autominer_installed, autominer_version) = matching_jar_version(&mods, "autominer-");
         return DetectionReport {
-            game_dir: Some(root.to_string_lossy().to_string()),
-            minecraft_found: true,
-            launcher_found: launcher.is_some(),
-            version_1211: versions.join("1.21.1").is_dir(),
-            fabric_installed: std::fs::read_dir(&versions).ok().into_iter().flatten().flatten().any(|e| e.file_name().to_string_lossy().contains("fabric-loader") && e.file_name().to_string_lossy().contains("1.21.1")),
-            fabric_api_installed: has_matching_jar(&mods, |n| n.starts_with("fabric-api-") && n.ends_with(".jar")),
-            autominer_installed: has_matching_jar(&mods, |n| n.starts_with("autominer-") && n.ends_with(".jar")),
-            config_found: root.join("config/autominer.json").is_file(),
-            launcher_path: launcher.map(|p| p.to_string_lossy().to_string()),
+            game_dir: Some(root.to_string_lossy().to_string()), minecraft_found: true, launcher_found: launcher.is_some(),
+            version_1211: minecraft_version.is_some(), fabric_installed: fabric_loader_version.is_some(), fabric_api_installed,
+            autominer_installed, config_found: root.join("config/autominer.json").is_file(),
+            launcher_path: launcher.map(|p| p.to_string_lossy().to_string()), minecraft_version, fabric_loader_version,
+            fabric_api_version, autominer_version,
         };
     }
-    DetectionReport { game_dir: None, minecraft_found: false, launcher_found: launcher.is_some(), version_1211: false, fabric_installed: false, fabric_api_installed: false, autominer_installed: false, config_found: false, launcher_path: launcher.map(|p| p.to_string_lossy().to_string()) }
+    DetectionReport { game_dir: None, minecraft_found: false, launcher_found: launcher.is_some(), version_1211: false, fabric_installed: false, fabric_api_installed: false, autominer_installed: false, config_found: false, launcher_path: launcher.map(|p| p.to_string_lossy().to_string()), minecraft_version: None, fabric_loader_version: None, fabric_api_version: None, autominer_version: None }
 }
 
 pub fn find_launcher() -> Option<PathBuf> {

@@ -10,4 +10,8 @@ export const EMPTY_DETECTION: DetectionReport = {
   autominerInstalled: false,
   configFound: false,
   launcherPath: null,
+  minecraftVersion: null,
+  fabricLoaderVersion: null,
+  fabricApiVersion: null,
+  autominerVersion: null,
 }

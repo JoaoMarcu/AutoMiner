@@ -1,23 +1,24 @@
 use crate::{download, error::{ManagerError, Result}, paths::safe_file_name};
 use serde::{Deserialize, Serialize};
 
-const FALLBACK_REPO: &str = "AutoMinerDev/AutoMiner";
-
 #[derive(Debug, Deserialize)]
-struct GithubRelease { tag_name: String, assets: Vec<GithubAsset> }
+struct GithubRelease { tag_name: String, body: Option<String>, html_url: String, assets: Vec<GithubAsset> }
 #[derive(Debug, Deserialize)]
 struct GithubAsset { name: String, browser_download_url: String }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ModRelease { pub version: String, pub jar_name: String, pub jar_url: String, pub sha256: Option<String> }
+pub struct ModRelease { pub version: String, pub jar_name: String, pub jar_url: String, pub sha256: Option<String>, pub changelog: Option<String>, pub release_url: String }
 
-pub fn repository() -> String {
-    option_env!("AUTOMINER_GITHUB_REPO").unwrap_or(FALLBACK_REPO).to_string()
+pub fn repository() -> Result<String> {
+    let repo = option_env!("AUTOMINER_GITHUB_REPO").map(str::trim).filter(|value| {
+        let mut parts=value.split('/'); parts.next().is_some_and(|p|!p.is_empty()) && parts.next().is_some_and(|p|!p.is_empty()) && parts.next().is_none()
+    });
+    repo.map(str::to_string).ok_or(ManagerError::RepositoryNotConfigured)
 }
 
 pub async fn latest_mod_release() -> Result<ModRelease> {
-    let repo = repository();
+    let repo = repository()?;
     let url = format!("https://api.github.com/repos/{repo}/releases/latest");
     let release: GithubRelease = download::client().get(url).send().await?.error_for_status()?.json().await?;
     let version = crate::version::normalize(&release.tag_name);
@@ -33,7 +34,7 @@ pub async fn latest_mod_release() -> Result<ModRelease> {
         let text = String::from_utf8(bytes).map_err(|_| ManagerError::Invalid("Checksum inválido".into()))?;
         text.split_whitespace().next().map(str::to_string)
     } else { None };
-    Ok(ModRelease { version, jar_name: jar.name.clone(), jar_url: jar.browser_download_url.clone(), sha256 })
+    Ok(ModRelease { version, jar_name: jar.name.clone(), jar_url: jar.browser_download_url.clone(), sha256, changelog: release.body, release_url: release.html_url })
 }
 
 #[derive(Debug, Deserialize)]
