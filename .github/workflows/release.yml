@@ -24,13 +24,14 @@ jobs:
         run: test "${GITHUB_REF_NAME#v}" = "$(grep '^mod_version=' fabric-mod/gradle.properties | cut -d= -f2)"
       - name: Build Fabric mod
         working-directory: fabric-mod
-        run: gradle build
+        run: ./gradlew build
       - name: Stage mod and checksum
         shell: bash
         run: |
           mkdir -p dist
-          cp fabric-mod/build/libs/autominer-1.0.0.jar dist/autominer-1.0.0.jar
-          cd dist && sha256sum autominer-1.0.0.jar > autominer-1.0.0.jar.sha256
+          VERSION=$(jq -r .version release-config.json)
+          cp "fabric-mod/build/libs/autominer-${VERSION}.jar" "dist/autominer-${VERSION}.jar"
+          cd dist && sha256sum "autominer-${VERSION}.jar" > "autominer-${VERSION}.jar.sha256"
       - uses: actions/upload-artifact@v4
         with:
           name: autominer-mod
@@ -54,9 +55,12 @@ jobs:
         run: pnpm build
       - name: Test Rust core
         run: cargo test --manifest-path src-tauri/Cargo.toml
+      - name: Load release configuration
+        shell: pwsh
+        run: |
+          $config = Get-Content release-config.json | ConvertFrom-Json
+          "AUTOMINER_GITHUB_REPO=$($config.githubOwner)/$($config.githubRepository)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Build NSIS installer
-        env:
-          AUTOMINER_GITHUB_REPO: joao5877/AutoMiner
         run: pnpm manager:build
       - name: Stage installer and checksum
         shell: pwsh
@@ -80,19 +84,29 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
-      - name: Verify release assets
+      - name: Verify and assemble release assets
+        shell: bash
         run: |
-          test -f dist/autominer-mod/autominer-1.0.0.jar
-          test -f dist/autominer-mod/autominer-1.0.0.jar.sha256
-          test -f dist/autominer-manager-windows/AutoMiner-Setup.exe
-          test -f dist/autominer-manager-windows/AutoMiner-Setup.exe.sha256
-          cd dist/autominer-mod && sha256sum --check autominer-1.0.0.jar.sha256
+          VERSION=$(jq -r .version release-config.json)
+          OWNER=$(jq -r .githubOwner release-config.json)
+          REPO=$(jq -r .githubRepository release-config.json)
+          TAG=$(jq -r .releaseTag release-config.json)
+          MOD="dist/autominer-mod/autominer-${VERSION}.jar"
+          SETUP="dist/autominer-manager-windows/AutoMiner-Setup.exe"
+          test -f "$MOD" && test -f "$SETUP"
+          (cd "$(dirname "$MOD")" && sha256sum --check "$(basename "$MOD").sha256")
+          (cd "$(dirname "$SETUP")" && sha256sum --check "$(basename "$SETUP").sha256")
+          jq -n --arg version "$VERSION" --arg minecraftVersion "$(jq -r .minecraftVersion release-config.json)" --arg release "$TAG" --arg manager "https://github.com/$OWNER/$REPO/releases/download/$TAG/AutoMiner-Setup.exe" --arg mod "https://github.com/$OWNER/$REPO/releases/download/$TAG/autominer-$VERSION.jar" --arg checksums "https://github.com/$OWNER/$REPO/releases/download/$TAG/SHA256SUMS.txt" '{version:$version,minecraftVersion:$minecraftVersion,release:$release,assets:{manager:$manager,mod:$mod,checksums:$checksums}}' > dist/manifest.json
+          jq empty dist/manifest.json
+          ! grep -Eiq 'example\.com|localhost|YOUR_USERNAME|YOUR_REPOSITORY|placeholder' dist/manifest.json
+          (cd dist/autominer-mod && sha256sum "autominer-${VERSION}.jar") > dist/SHA256SUMS.txt
+          (cd dist/autominer-manager-windows && sha256sum AutoMiner-Setup.exe) >> dist/SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/autominer-mod/autominer-1.0.0.jar
-            dist/autominer-mod/autominer-1.0.0.jar.sha256
             dist/autominer-manager-windows/AutoMiner-Setup.exe
-            dist/autominer-manager-windows/AutoMiner-Setup.exe.sha256
+            dist/manifest.json
+            dist/SHA256SUMS.txt
           generate_release_notes: true
           fail_on_unmatched_files: true

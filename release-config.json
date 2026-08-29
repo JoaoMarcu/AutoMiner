@@ -1,0 +1,10 @@
+{
+  "githubOwner": "joao5877",
+  "githubRepository": "AutoMiner",
+  "version": "1.0.0",
+  "minecraftVersion": "1.21.1",
+  "releaseTag": "v1.0.0",
+  "modAsset": "autominer-1.0.0.jar",
+  "managerAsset": "AutoMiner-Setup.exe",
+  "checksumsAsset": "SHA256SUMS.txt"
+}
