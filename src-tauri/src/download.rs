@@ -1,5 +1,5 @@
 use crate::error::{ManagerError, Result};
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha512};
 use std::path::Path;
 
 pub fn client() -> reqwest::Client {
@@ -13,6 +13,12 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
     let mut h = Sha256::new();
     h.update(bytes);
     hex::encode(h.finalize())
+}
+
+pub fn verify_sha512(bytes: &[u8], expected: &str) -> Result<()> {
+    let mut h = Sha512::new();
+    h.update(bytes);
+    if hex::encode(h.finalize()).eq_ignore_ascii_case(expected) { Ok(()) } else { Err(ManagerError::Checksum) }
 }
 
 /// Baixa uma URL para bytes, valida tamanho e (quando fornecido) o checksum SHA-256.

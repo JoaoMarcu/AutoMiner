@@ -23,8 +23,9 @@ pub async fn install_all(game_dir: &str) -> Result<InstallResult> {
 
     let existing = find_installed_mod(&mods);
     let backup_created = if let Some(ref path) = existing { backups::create(&game, path)?.is_some() } else { false };
-    let (api_name, api_url) = releases::latest_fabric_api().await?;
+    let (api_name, api_url, api_sha512) = releases::latest_fabric_api().await?;
     let api_bytes = download::download_verified(&api_url, None).await?;
+    if let Some(expected) = api_sha512.as_deref() { download::verify_sha512(&api_bytes, expected)?; }
     if !api_bytes.starts_with(b"PK") { return Err(ManagerError::Invalid("Fabric API inválida".into())); }
 
     // Só modifica a instalação depois que todos os downloads foram validados.

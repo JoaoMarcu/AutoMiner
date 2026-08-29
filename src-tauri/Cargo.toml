@@ -2,8 +2,10 @@
 name = "autominer-manager"
 version = "1.0.0"
 description = "Instalador e gerenciador local do AutoMiner"
-authors = ["AutoMiner"]
+authors = ["AutoMiner contributors"]
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/joao5877/AutoMiner"
 
 [lib]
 name = "autominer_manager_lib"

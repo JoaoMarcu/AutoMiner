@@ -18,13 +18,24 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Validate release version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: test "${GITHUB_REF_NAME#v}" = "$(grep '^mod_version=' fabric-mod/gradle.properties | cut -d= -f2)"
       - name: Build Fabric mod
         working-directory: fabric-mod
         run: gradle build
+      - name: Stage mod and checksum
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp fabric-mod/build/libs/autominer-1.0.0.jar dist/autominer-1.0.0.jar
+          cd dist && sha256sum autominer-1.0.0.jar > autominer-1.0.0.jar.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: autominer-mod
-          path: fabric-mod/build/libs/*.jar
+          path: dist/*
+          if-no-files-found: error
 
   build-manager:
     runs-on: windows-latest
@@ -39,12 +50,27 @@ jobs:
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
       - run: pnpm install --frozen-lockfile
+      - name: Validate web build
+        run: pnpm build
+      - name: Test Rust core
+        run: cargo test --manifest-path src-tauri/Cargo.toml
       - name: Build NSIS installer
+        env:
+          AUTOMINER_GITHUB_REPO: joao5877/AutoMiner
         run: pnpm manager:build
+      - name: Stage installer and checksum
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $installer = Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1
+          Copy-Item $installer.FullName "dist/AutoMiner-Setup.exe"
+          $hash = (Get-FileHash "dist/AutoMiner-Setup.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  AutoMiner-Setup.exe" | Set-Content -NoNewline "dist/AutoMiner-Setup.exe.sha256"
       - uses: actions/upload-artifact@v4
         with:
           name: autominer-manager-windows
-          path: src-tauri/target/release/bundle/nsis/*.exe
+          path: dist/*
+          if-no-files-found: error
 
   publish:
     if: startsWith(github.ref, 'refs/tags/')
@@ -54,12 +80,19 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
-      - name: Generate checksums
-        run: find dist -type f -exec sha256sum {} \; > dist/SHA256SUMS.txt
+      - name: Verify release assets
+        run: |
+          test -f dist/autominer-mod/autominer-1.0.0.jar
+          test -f dist/autominer-mod/autominer-1.0.0.jar.sha256
+          test -f dist/autominer-manager-windows/AutoMiner-Setup.exe
+          test -f dist/autominer-manager-windows/AutoMiner-Setup.exe.sha256
+          cd dist/autominer-mod && sha256sum --check autominer-1.0.0.jar.sha256
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/**/*.jar
-            dist/**/*.exe
-            dist/SHA256SUMS.txt
+            dist/autominer-mod/autominer-1.0.0.jar
+            dist/autominer-mod/autominer-1.0.0.jar.sha256
+            dist/autominer-manager-windows/AutoMiner-Setup.exe
+            dist/autominer-manager-windows/AutoMiner-Setup.exe.sha256
           generate_release_notes: true
+          fail_on_unmatched_files: true

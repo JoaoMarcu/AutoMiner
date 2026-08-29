@@ -11,10 +11,12 @@ struct GithubAsset { name: String, browser_download_url: String }
 pub struct ModRelease { pub version: String, pub jar_name: String, pub jar_url: String, pub sha256: Option<String>, pub changelog: Option<String>, pub release_url: String }
 
 pub fn repository() -> Result<String> {
-    let repo = option_env!("AUTOMINER_GITHUB_REPO").map(str::trim).filter(|value| {
-        let mut parts=value.split('/'); parts.next().is_some_and(|p|!p.is_empty()) && parts.next().is_some_and(|p|!p.is_empty()) && parts.next().is_none()
-    });
-    repo.map(str::to_string).ok_or(ManagerError::RepositoryNotConfigured)
+    let repo = option_env!("AUTOMINER_GITHUB_REPO").unwrap_or("joao5877/AutoMiner").trim();
+    let mut parts = repo.split('/');
+    let valid = parts.next().is_some_and(|p| !p.is_empty())
+        && parts.next().is_some_and(|p| !p.is_empty())
+        && parts.next().is_none();
+    valid.then(|| repo.to_string()).ok_or(ManagerError::RepositoryNotConfigured)
 }
 
 pub async fn latest_mod_release() -> Result<ModRelease> {
@@ -29,12 +31,12 @@ pub async fn latest_mod_release() -> Result<ModRelease> {
         let n = a.name.to_lowercase();
         n == format!("{prefix}.jar.sha256") || n == format!("{prefix}.sha256")
     });
-    let sha256 = if let Some(asset) = checksum_asset {
-        let bytes = download::download_verified(&asset.browser_download_url, None).await?;
-        let text = String::from_utf8(bytes).map_err(|_| ManagerError::Invalid("Checksum inválido".into()))?;
-        text.split_whitespace().next().map(str::to_string)
-    } else { None };
-    Ok(ModRelease { version, jar_name: jar.name.clone(), jar_url: jar.browser_download_url.clone(), sha256, changelog: release.body, release_url: release.html_url })
+    let asset = checksum_asset.ok_or_else(|| ManagerError::Invalid("Release sem checksum SHA-256".into()))?;
+    let bytes = download::download_verified(&asset.browser_download_url, None).await?;
+    let text = String::from_utf8(bytes).map_err(|_| ManagerError::Invalid("Checksum inválido".into()))?;
+    let sha256 = text.split_whitespace().next().filter(|value| value.len() == 64 && value.chars().all(|c| c.is_ascii_hexdigit())).map(str::to_string)
+        .ok_or_else(|| ManagerError::Invalid("Checksum SHA-256 malformado".into()))?;
+    Ok(ModRelease { version, jar_name: jar.name.clone(), jar_url: jar.browser_download_url.clone(), sha256: Some(sha256), changelog: release.body, release_url: release.html_url })
 }
 
 #[derive(Debug, Deserialize)]
@@ -44,11 +46,12 @@ struct ModrinthFile { url: String, filename: String, primary: bool, hashes: Modr
 #[derive(Debug, Deserialize)]
 struct ModrinthHashes { sha512: Option<String>, sha1: Option<String> }
 
-pub async fn latest_fabric_api() -> Result<(String, String)> {
+pub async fn latest_fabric_api() -> Result<(String, String, Option<String>)> {
     let url = "https://api.modrinth.com/v2/project/P7dR8mSH/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%221.21.1%22%5D";
     let versions: Vec<ModrinthVersion> = download::client().get(url).send().await?.error_for_status()?.json().await?;
     let file = versions.first().and_then(|v| v.files.iter().find(|f| f.primary).or_else(|| v.files.first())).ok_or(ManagerError::NoRelease)?;
-    let _available_hash = file.hashes.sha512.as_ref().or(file.hashes.sha1.as_ref());
+    let sha512 = file.hashes.sha512.clone();
+    let _sha1 = file.hashes.sha1.as_ref();
     safe_file_name(&file.filename)?;
-    Ok((file.filename.clone(), file.url.clone()))
+    Ok((file.filename.clone(), file.url.clone(), sha512))
 }
