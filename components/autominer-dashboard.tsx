@@ -12,6 +12,7 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { autoMinerApi } from '@/lib/autominer-api'
 import { DEFAULT_CONFIG, OFFLINE_TELEMETRY, type AutoMinerConfig, type Telemetry } from '@/lib/autominer-types'
+import { isTauri, managerApi } from '@/lib/tauri-manager'
 import { TrajectoryView } from './trajectory-view'
 
 const nav = [
@@ -21,7 +22,7 @@ const nav = [
 
 function formatTime(seconds: number) { return new Date(seconds * 1000).toISOString().slice(11, 19) }
 
-export function AutoMinerDashboard() {
+export function AutoMinerDashboard({ gameDir = '' }: { gameDir?: string }) {
   const [section, setSection] = useState('Visão geral')
   const [config, setConfig] = useState<AutoMinerConfig>(DEFAULT_CONFIG)
   const [telemetry, setTelemetry] = useState<Telemetry>(OFFLINE_TELEMETRY)
@@ -40,8 +41,11 @@ export function AutoMinerDashboard() {
       } catch { setTelemetry((value) => ({ ...value, online: false })) }
     }
     void connect()
+    if (gameDir && isTauri()) {
+      void managerApi.loadConfig(gameDir).then((value) => setConfig(value as AutoMinerConfig)).catch(() => undefined)
+    }
     return () => { events?.close(); clearTimeout(retry) }
-  }, [])
+  }, [gameDir])
 
   const patch = <K extends keyof AutoMinerConfig>(group: K, values: Partial<AutoMinerConfig[K]>) => {
     setConfig((current) => ({ ...current, [group]: { ...current[group], ...values } })); setDirty(true)
@@ -50,8 +54,13 @@ export function AutoMinerDashboard() {
     try { setTelemetry({ ...(await autoMinerApi.command(value)), online: true }); toast.success(`Comando ${value} enviado`) } catch { toast.error('Mod offline — comando não enviado') }
   }
   const save = async () => {
-    if (!telemetry.online) { toast.error('Conecte o mod para persistir a configuração'); return }
-    try { setConfig(await autoMinerApi.saveConfig(config)); setDirty(false); toast.success('Configuração aplicada no mod') } catch { toast.error('Não foi possível salvar no mod') }
+    try {
+      if (telemetry.online) setConfig(await autoMinerApi.saveConfig(config))
+      else if (gameDir && isTauri()) await managerApi.saveConfig(gameDir, config)
+      else throw new Error('offline')
+      setDirty(false)
+      toast.success(telemetry.online ? 'Configuração aplicada no mod' : 'Configuração salva no Minecraft')
+    } catch { toast.error('Conecte o mod ou selecione uma instalação válida') }
   }
 
   return <main className="min-h-screen bg-background font-sans text-foreground">

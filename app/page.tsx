@@ -1,5 +1,5 @@
-import { AutoMinerDashboard } from '@/components/autominer-dashboard'
+import { ManagerDashboard } from '@/components/manager-dashboard'
 
 export default function Page() {
-  return <AutoMinerDashboard />
+  return <ManagerDashboard />
 }

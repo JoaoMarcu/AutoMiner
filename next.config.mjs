@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
+const isTauriBuild = process.env.TAURI_BUILD === 'true'
+
 const nextConfig = {
+  ...(isTauriBuild ? { output: 'export' } : {}),
   images: { unoptimized: true },
   async headers() {
     return [{ source: '/(.*)', headers: [
