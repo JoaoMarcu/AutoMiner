@@ -21,10 +21,10 @@ jobs:
       - name: Validate release version
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
-        run: test "${GITHUB_REF_NAME#v}" = "$(grep '^mod_version=' fabric-mod/gradle.properties | cut -d= -f2)"
+        run:           test "${GITHUB_REF_NAME#v}" = "$(jq -r .version release-config.json)"
       - name: Build Fabric mod
         working-directory: fabric-mod
-        run: ./gradlew build
+        run: gradle build
       - name: Stage mod and checksum
         shell: bash
         run: |
@@ -104,7 +104,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/autominer-mod/autominer-1.0.0.jar
+            dist/autominer-mod/*.jar
             dist/autominer-manager-windows/AutoMiner-Setup.exe
             dist/manifest.json
             dist/SHA256SUMS.txt
