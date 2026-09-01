@@ -1,0 +1,5 @@
+{
+  "category.autominer": "AutoMiner",
+  "key.autominer.toggle": "Iniciar ou parar AutoMiner",
+  "key.autominer.toggle_hud": "Mostrar ou ocultar HUD do AutoMiner"
+}

@@ -14,7 +14,12 @@ public final class AutoMinerClient implements ClientModInitializer {
         var config = new ConfigManager().load();
         controller = new AutoMinerController(config);
         var toggle = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.autominer.toggle", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F6, "category.autominer"));
-        ClientTickEvents.END_CLIENT_TICK.register(client -> { while (toggle.wasPressed()) controller.toggle(client); controller.tick(client); });
+        var toggleHud = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.autominer.toggle_hud", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, "category.autominer"));
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (toggle.wasPressed()) controller.toggle(client);
+            while (toggleHud.wasPressed()) controller.toggleHud();
+            controller.tick(client);
+        });
         HudRenderCallback.EVENT.register((context, tickCounter) -> controller.renderHud(context));
         Runtime.getRuntime().addShutdownHook(new Thread(controller::close));
     }

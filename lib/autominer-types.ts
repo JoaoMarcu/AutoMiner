@@ -1,6 +1,6 @@
 export type MinerState = "STOPPED" | "RUNNING" | "PAUSED" | "SEARCHING" | "AIMING" | "MINING" | "RECOVERING" | "ERROR"
 
-export interface BlockRule { id: string; enabled: boolean; priority: number }
+export interface BlockRule { id: string; enabled: boolean }
 export interface AutoMinerConfig {
   schemaVersion: number
   enabledBlocks: BlockRule[]
@@ -20,10 +20,10 @@ export interface Telemetry {
 export const DEFAULT_CONFIG: AutoMinerConfig = {
   schemaVersion: 2,
   enabledBlocks: [
-    ["minecraft:lapis_ore", 8], ["minecraft:deepslate_lapis_ore", 8], ["minecraft:emerald_ore", 9],
-    ["minecraft:deepslate_emerald_ore", 9], ["minecraft:diamond_ore", 10], ["minecraft:deepslate_diamond_ore", 10],
-    ["minecraft:lapis_block", 5], ["minecraft:emerald_block", 6], ["minecraft:diamond_block", 7],
-  ].map(([id, priority]) => ({ id: String(id), enabled: true, priority: Number(priority) })),
+    "minecraft:lapis_ore", "minecraft:deepslate_lapis_ore", "minecraft:emerald_ore",
+    "minecraft:deepslate_emerald_ore", "minecraft:diamond_ore", "minecraft:deepslate_diamond_ore",
+    "minecraft:lapis_block", "minecraft:emerald_block", "minecraft:diamond_block",
+  ].map((id) => ({ id, enabled: true })),
   movement: { forward: true, sprint: true, sideMovement: false, baseSpeed: 1, lateralRange: 3, verticalUp: 2, verticalDown: 2, searchDistance: 6 },
   camera: { yawSpeed: 6, pitchSpeed: 5, smoothing: 0.82, horizontalLimit: 75, verticalLimit: 60, variation: 0.7 },
   randomness: { enabled: true, amount: 0.35, targetNoise: 0.12, timingNoise: 0.08, historyPenalty: 1.8 },

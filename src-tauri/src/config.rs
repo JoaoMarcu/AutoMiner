@@ -8,15 +8,15 @@ pub fn defaults() -> Value {
     json!({
       "schemaVersion": 2,
       "enabledBlocks": [
-        {"id":"minecraft:lapis_ore","enabled":true,"priority":8},
-        {"id":"minecraft:deepslate_lapis_ore","enabled":true,"priority":8},
-        {"id":"minecraft:emerald_ore","enabled":true,"priority":9},
-        {"id":"minecraft:deepslate_emerald_ore","enabled":true,"priority":9},
-        {"id":"minecraft:diamond_ore","enabled":true,"priority":10},
-        {"id":"minecraft:deepslate_diamond_ore","enabled":true,"priority":10},
-        {"id":"minecraft:lapis_block","enabled":true,"priority":5},
-        {"id":"minecraft:emerald_block","enabled":true,"priority":6},
-        {"id":"minecraft:diamond_block","enabled":true,"priority":7}
+        {"id":"minecraft:lapis_ore","enabled":true},
+        {"id":"minecraft:deepslate_lapis_ore","enabled":true},
+        {"id":"minecraft:emerald_ore","enabled":true},
+        {"id":"minecraft:deepslate_emerald_ore","enabled":true},
+        {"id":"minecraft:diamond_ore","enabled":true},
+        {"id":"minecraft:deepslate_diamond_ore","enabled":true},
+        {"id":"minecraft:lapis_block","enabled":true},
+        {"id":"minecraft:emerald_block","enabled":true},
+        {"id":"minecraft:diamond_block","enabled":true}
       ],
       "movement":{"forward":true,"sprint":true,"sideMovement":false,"baseSpeed":1.0,"lateralRange":3,"verticalUp":2,"verticalDown":2,"searchDistance":6},
       "camera":{"yawSpeed":6.0,"pitchSpeed":5.0,"smoothing":0.82,"horizontalLimit":75.0,"verticalLimit":60.0,"variation":0.7},

@@ -12,8 +12,8 @@ public final class TargetSelector {
       double horizontal=Math.sqrt(d.x*d.x+d.z*d.z); float yaw=(float)Math.toDegrees(Math.atan2(-d.x,d.z)); float pitch=(float)-Math.toDegrees(Math.atan2(d.y,horizontal));
       if(Math.abs(CameraController.wrap(yaw-baseYaw))>cfg.camera.horizontalLimit||Math.abs(pitch)>cfg.camera.verticalLimit)continue;
       double lateral=Math.abs(d.x*forward.z-d.z*forward.x);if(lateral>cfg.movement.lateralRange)continue;
-      String id=Registries.BLOCK.getId(c.world.getBlockState(p).getBlock()).toString();int priority=cfg.enabledBlocks.stream().filter(r->r.enabled()&&r.id().equals(id)).mapToInt(AutoMinerConfig.BlockRule::priority).max().orElse(-1);if(priority<0)continue;
-      double score=priority*10-front-lateral*2-Math.abs(d.y)-(history.contains(p)?cfg.randomness.historyPenalty:0)+(cfg.randomness.enabled?Math.random()*cfg.randomness.targetNoise:0);
+      String id=Registries.BLOCK.getId(c.world.getBlockState(p).getBlock()).toString();boolean enabled=cfg.enabledBlocks.stream().anyMatch(r->r.enabled()&&r.id().equals(id));if(!enabled)continue;
+      double score=-front-lateral*2-Math.abs(d.y)-(history.contains(p)?cfg.randomness.historyPenalty:0)+(cfg.randomness.enabled?Math.random()*cfg.randomness.targetNoise:0);
       if(score>bestScore){bestScore=score;best=p.toImmutable();}
     } return best;
   }

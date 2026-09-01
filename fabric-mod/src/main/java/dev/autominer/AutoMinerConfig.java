@@ -10,16 +10,21 @@ public final class AutoMinerConfig {
     public Randomness randomness = new Randomness();
     public Mining mining = new Mining();
     public Advanced advanced = new Advanced();
-    public record BlockRule(String id, boolean enabled, int priority) {}
+    public static final class BlockRule {
+        private String id; private boolean enabled;
+        public BlockRule(String id, boolean enabled) { this.id=id; this.enabled=enabled; }
+        public String id() { return id; }
+        public boolean enabled() { return enabled; }
+    }
     public static final class Movement { public boolean forward=true, sprint=true, sideMovement=false; public double baseSpeed=1; public int lateralRange=3, verticalUp=2, verticalDown=2, searchDistance=6; }
     public static final class Camera { public float yawSpeed=6, pitchSpeed=5, smoothing=.82f, horizontalLimit=75, verticalLimit=60, variation=.7f; }
     public static final class Randomness { public boolean enabled=true; public double amount=.35, targetNoise=.12, timingNoise=.08, historyPenalty=1.8; }
     public static final class Mining { public int breakDelayMs=120, retargetDelayMs=180, jumpCooldownMs=900; public boolean requireTool=true, autoJump=true; }
     public static final class Advanced { public boolean hud=true; public int apiPort=8765, historySize=8; }
     private static List<BlockRule> defaults() { return new ArrayList<>(List.of(
-        new BlockRule("minecraft:lapis_ore",true,8), new BlockRule("minecraft:deepslate_lapis_ore",true,8), new BlockRule("minecraft:emerald_ore",true,9),
-        new BlockRule("minecraft:deepslate_emerald_ore",true,9), new BlockRule("minecraft:diamond_ore",true,10), new BlockRule("minecraft:deepslate_diamond_ore",true,10),
-        new BlockRule("minecraft:lapis_block",true,5), new BlockRule("minecraft:emerald_block",true,6), new BlockRule("minecraft:diamond_block",true,7))); }
+        new BlockRule("minecraft:lapis_ore",true), new BlockRule("minecraft:deepslate_lapis_ore",true), new BlockRule("minecraft:emerald_ore",true),
+        new BlockRule("minecraft:deepslate_emerald_ore",true), new BlockRule("minecraft:diamond_ore",true), new BlockRule("minecraft:deepslate_diamond_ore",true),
+        new BlockRule("minecraft:lapis_block",true), new BlockRule("minecraft:emerald_block",true), new BlockRule("minecraft:diamond_block",true))); }
     public void validate() {
         schemaVersion=2;
         if(enabledBlocks==null) enabledBlocks=defaults();
