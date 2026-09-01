@@ -14,6 +14,7 @@ export interface Vec3 { x: number; y: number; z: number }
 export interface Telemetry {
   state: MinerState | null; online: boolean; blocksBroken: number | null; activeSeconds: number | null; speed: number | null
   player: Vec3 | null; camera: { yaw: number; pitch: number } | null; target: ({ id: string; position: Vec3; distance: number } | null)
+  corridor?: number; corridorCount?: number; areaPhase?: "NONE" | "CORRIDOR" | "TURNING" | "RETURNING" | "COMPLETE"
   history: Array<{ id: string; position: Vec3 }>; lastError?: string
 }
 
