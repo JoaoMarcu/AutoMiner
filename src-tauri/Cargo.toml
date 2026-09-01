@@ -1,6 +1,6 @@
 [package]
 name = "autominer-manager"
-version = "1.0.0"
+version = "1.0.4"
 description = "Instalador e gerenciador local do AutoMiner"
 authors = ["AutoMiner contributors"]
 edition = "2021"

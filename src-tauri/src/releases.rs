@@ -11,7 +11,7 @@ struct GithubAsset { name: String, browser_download_url: String }
 pub struct ModRelease { pub version: String, pub jar_name: String, pub jar_url: String, pub sha256: Option<String>, pub changelog: Option<String>, pub release_url: String }
 
 pub fn repository() -> Result<String> {
-    let repo = option_env!("AUTOMINER_GITHUB_REPO").unwrap_or("joao5877/AutoMiner").trim();
+    let repo = option_env!("AUTOMINER_GITHUB_REPO").unwrap_or("JoaoMarcu/AutoMiner").trim();
     let mut parts = repo.split('/');
     let valid = parts.next().is_some_and(|p| !p.is_empty())
         && parts.next().is_some_and(|p| !p.is_empty())

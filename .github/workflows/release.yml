@@ -20,10 +20,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.8'
-      - name: Validate release version
+      - name: Validate release configuration
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
-        run:           test "${GITHUB_REF_NAME#v}" = "$(jq -r .version release-config.json)"
+        run: |
+          VERSION=$(jq -r .version release-config.json)
+          test "${GITHUB_REF_NAME#v}" = "$VERSION"
+          test "$(grep '^mod_version=' fabric-mod/gradle.properties | cut -d= -f2)" = "$VERSION"
+          test "$(jq -r .releaseTag release-config.json)" = "$GITHUB_REF_NAME"
+          test "$(jq -r .modAsset release-config.json)" = "autominer-${VERSION}.jar"
       - name: Build Fabric mod
         working-directory: fabric-mod
         run: gradle build
@@ -52,7 +57,19 @@ jobs:
           node-version: '22'
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
       - run: pnpm install --frozen-lockfile
+      - name: Validate manager version
+        shell: pwsh
+        run: |
+          $config = Get-Content release-config.json | ConvertFrom-Json
+          $package = Get-Content package.json | ConvertFrom-Json
+          $tauri = Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json
+          $cargoVersion = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "(.+)"$').Matches[0].Groups[1].Value
+          if ($package.version -ne $config.version -or $tauri.version -ne $config.version -or $cargoVersion -ne $config.version) { throw "Versões do Manager não correspondem a $($config.version)" }
       - name: Validate web build
         run: pnpm build
       - name: Test Rust core
@@ -68,8 +85,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          $installer = Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1
-          Copy-Item $installer.FullName "dist/AutoMiner-Setup.exe"
+          $installers = @(Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe")
+          if ($installers.Count -ne 1) { throw "Esperado exatamente um instalador NSIS; encontrados $($installers.Count)" }
+          Copy-Item $installers[0].FullName "dist/AutoMiner-Setup.exe"
           $hash = (Get-FileHash "dist/AutoMiner-Setup.exe" -Algorithm SHA256).Hash.ToLower()
           "$hash  AutoMiner-Setup.exe" | Set-Content -NoNewline "dist/AutoMiner-Setup.exe.sha256"
       - uses: actions/upload-artifact@v4
@@ -94,6 +112,7 @@ jobs:
           OWNER=$(jq -r .githubOwner release-config.json)
           REPO=$(jq -r .githubRepository release-config.json)
           TAG=$(jq -r .releaseTag release-config.json)
+          test "$TAG" = "$GITHUB_REF_NAME"
           MOD="dist/autominer-mod/autominer-${VERSION}.jar"
           SETUP="dist/autominer-manager-windows/AutoMiner-Setup.exe"
           test -f "$MOD" && test -f "$SETUP"
@@ -102,13 +121,18 @@ jobs:
           jq -n --arg version "$VERSION" --arg minecraftVersion "$(jq -r .minecraftVersion release-config.json)" --arg release "$TAG" --arg manager "https://github.com/$OWNER/$REPO/releases/download/$TAG/AutoMiner-Setup.exe" --arg mod "https://github.com/$OWNER/$REPO/releases/download/$TAG/autominer-$VERSION.jar" --arg checksums "https://github.com/$OWNER/$REPO/releases/download/$TAG/SHA256SUMS.txt" '{version:$version,minecraftVersion:$minecraftVersion,release:$release,assets:{manager:$manager,mod:$mod,checksums:$checksums}}' > dist/manifest.json
           jq empty dist/manifest.json
           ! grep -Eiq 'example\.com|localhost|YOUR_USERNAME|YOUR_REPOSITORY|placeholder' dist/manifest.json
-          (cd dist/autominer-mod && sha256sum "autominer-${VERSION}.jar") > dist/SHA256SUMS.txt
-          (cd dist/autominer-manager-windows && sha256sum AutoMiner-Setup.exe) >> dist/SHA256SUMS.txt
+          MOD_HASH=$(sha256sum "$MOD" | cut -d' ' -f1)
+          SETUP_HASH=$(sha256sum "$SETUP" | cut -d' ' -f1)
+          printf '%s  %s\n%s  %s\n' "$MOD_HASH" "autominer-${VERSION}.jar" "$SETUP_HASH" "AutoMiner-Setup.exe" > dist/SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: AutoMiner ${{ github.ref_name }}
           files: |
             dist/autominer-mod/*.jar
+            dist/autominer-mod/*.jar.sha256
             dist/autominer-manager-windows/AutoMiner-Setup.exe
+            dist/autominer-manager-windows/AutoMiner-Setup.exe.sha256
             dist/manifest.json
             dist/SHA256SUMS.txt
           generate_release_notes: true

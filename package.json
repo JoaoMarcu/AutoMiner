@@ -1,6 +1,6 @@
 {
   "name": "autominer-manager",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Gerenciador desktop e painel local do AutoMiner para Minecraft 1.21.1",
   "license": "MIT",
   "repository": "github:JoaoMarcu/AutoMiner",
@@ -12,7 +12,7 @@
     "manager:web": "cross-env TAURI_BUILD=true next build",
     "manager:dev": "tauri dev",
     "manager:build": "tauri build",
-    "mod:build": "cd fabric-mod && ./gradlew build"
+    "mod:build": "cd fabric-mod && gradle build"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
