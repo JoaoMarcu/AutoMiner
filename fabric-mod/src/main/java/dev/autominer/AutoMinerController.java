@@ -4,6 +4,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.math.*;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class AutoMinerController implements AutoCloseable {
@@ -20,8 +21,10 @@ public final class AutoMinerController implements AutoCloseable {
   public void tick(MinecraftClient c){
     telemetry.state=state.get().name(); if(c.player==null||c.world==null||c.player.isDead()){if(state.get()!=State.STOPPED)stop(c);return;} updateTelemetry(c);
     if(state.get()==State.STOPPED||state.get()==State.PAUSED||c.isPaused()){release(c);return;}
+    if(area!=null&&area.phase()==MiningAreaSession.Phase.RETURNING){mining.release(c);boolean aligned=camera.returnTo(c.player,baseYaw,config.camera);boolean nearOrigin=c.player.getPos().squaredDistanceTo(area.origin())<1.0;if(nearOrigin){movement.release(c);if(aligned)area.nextCorridor();}else if(aligned)movement.apply(c,config.movement.sprint);else movement.release(c);return;}
+    if(area!=null&&area.phase()==MiningAreaSession.Phase.COMPLETE){mining.release(c);movement.release(c);state.set(State.STOPPED);return;}
     if(config.movement.forward) movement.apply(c,config.movement.sprint); else movement.release(c);
-    if(target==null||!mining.valid(c,target,config)){mining.release(c);target=selector.select(c,config,history,baseYaw,area);state.set(target==null?State.RECOVERING:State.AIMING);if(target==null){if(area!=null)area.nextCorridor();camera.returnTo(c.player,baseYaw,config.camera);if(area!=null)area.beginCorridor();return;}}
+    if(target==null||!mining.valid(c,target,config)){BlockPos previous=target;target=selector.select(c,config,history,baseYaw,area);state.set(target==null?State.RECOVERING:State.AIMING);if(!Objects.equals(previous,target))mining.release(c);if(target==null){if(area!=null)area.nextCorridor();camera.returnTo(c.player,baseYaw,config.camera);if(area!=null)area.beginCorridor();return;}}
     jump.tick(c,target,config); if(!camera.aim(c.player,target,config.camera)){state.set(State.AIMING);return;} state.set(State.MINING);
     long delay=config.mining.breakDelayMs;
     if(config.randomness.enabled) delay+=Math.round(delay*config.randomness.timingNoise*config.randomness.amount*Math.random());

@@ -10,5 +10,5 @@ public final class CameraController {
     player.setYaw(player.getYaw()+dy*(1-cfg.smoothing)); player.setPitch(MathHelper.clamp(player.getPitch()+dp*(1-cfg.smoothing),-90,90));
     return Math.abs(wrap(yaw-player.getYaw()))<2.5f && Math.abs(pitch-player.getPitch())<2.5f;
   }
-  public void returnTo(ClientPlayerEntity player,float baseYaw,AutoMinerConfig.Camera cfg){ float d=MathHelper.clamp(wrap(baseYaw-player.getYaw()),-cfg.yawSpeed,cfg.yawSpeed);player.setYaw(player.getYaw()+d*(1-cfg.smoothing)); }
+  public boolean returnTo(ClientPlayerEntity player,float baseYaw,AutoMinerConfig.Camera cfg){ float d=MathHelper.clamp(wrap(baseYaw-player.getYaw()),-cfg.yawSpeed,cfg.yawSpeed);player.setYaw(player.getYaw()+d*(1-cfg.smoothing)); return Math.abs(wrap(baseYaw-player.getYaw()))<2.5f; }
 }

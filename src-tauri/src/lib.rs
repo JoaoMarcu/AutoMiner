@@ -66,17 +66,25 @@ fn uninstall_mod(game_dir: String, remove_config: bool) -> Result<()> {
 
 #[tauri::command]
 fn open_launcher() -> Result<()> {
+    if let Some(path) = minecraft::find_launcher() {
+        let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or_default().to_lowercase();
+        let spawned = if extension == "jar" {
+            std::process::Command::new("java").args(["-jar"]).arg(&path).spawn()
+        } else if extension == "app" {
+            std::process::Command::new("open").arg(&path).spawn()
+        } else {
+            std::process::Command::new(&path).spawn()
+        };
+        spawned.map_err(|e| ManagerError::Io(e.to_string()))?;
+        return Ok(());
+    }
     #[cfg(target_os = "windows")]
     {
-        if let Some(path) = minecraft::find_launcher() {
-            std::process::Command::new(path).spawn().map_err(|e| ManagerError::Io(e.to_string()))?;
-            return Ok(());
-        }
         std::process::Command::new("explorer.exe").arg("minecraft://").spawn().map_err(|e| ManagerError::Io(e.to_string()))?;
-        Ok(())
+        return Ok(());
     }
     #[cfg(not(target_os = "windows"))]
-    { Err(ManagerError::Invalid("O Launcher automático está disponível no Windows".into())) }
+    { Err(ManagerError::Invalid("Nenhum launcher (Minecraft Launcher ou TLauncher) foi encontrado.".into())) }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -78,19 +78,37 @@ fn fabric_loader_version(versions: &Path) -> Option<String> {
     })
 }
 
-fn profile_game_dirs(root: &Path) -> Vec<PathBuf> {
+fn is_target_version_id(id: &str) -> bool { id.contains(GAME_VERSION) && id.to_lowercase().contains("fabric") }
+
+fn vanilla_profile_dirs(root: &Path) -> Vec<PathBuf> {
     ["launcher_profiles.json", "launcher_profiles_microsoft_store.json"].into_iter()
         .filter_map(|name| std::fs::read(root.join(name)).ok())
         .filter_map(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
         .filter_map(|json| json.get("profiles").and_then(Value::as_object).cloned())
         .flat_map(|profiles| profiles.into_values())
-        .filter(|profile| {
-            profile.get("lastVersionId").and_then(Value::as_str)
-                .is_some_and(|id| id.contains(GAME_VERSION) && id.to_lowercase().contains("fabric"))
-        })
+        .filter(|profile| profile.get("lastVersionId").and_then(Value::as_str).is_some_and(is_target_version_id))
         .filter_map(|profile| profile.get("gameDir").and_then(Value::as_str).map(PathBuf::from))
-        .filter(|path| path.is_dir())
         .collect()
+}
+
+fn tlauncher_profile_dirs(root: &Path) -> Vec<PathBuf> {
+    std::fs::read(root.join("tlauncher_profiles.json")).ok()
+        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+        .map(|json| {
+            json.get("profiles").and_then(Value::as_object).into_iter().flatten()
+                .flat_map(|(_, profiles)| profiles.as_object().into_iter().flatten())
+                .flat_map(|(_, profile)| profile.as_object().cloned())
+                .filter(|profile| profile.get("lastVersionId").and_then(Value::as_str).is_some_and(is_target_version_id))
+                .filter_map(|profile| profile.get("gameDir").and_then(Value::as_str).map(PathBuf::from))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+}
+
+fn profile_game_dirs(root: &Path) -> Vec<PathBuf> {
+    let mut dirs = vanilla_profile_dirs(root);
+    dirs.extend(tlauncher_profile_dirs(root));
+    dirs.into_iter().filter(|path| path.is_dir()).collect()
 }
 
 pub fn resolve_mods_dir(game: &Path) -> PathBuf {
@@ -107,7 +125,8 @@ fn minecraft_running(game: Option<&Path>) -> bool {
     let commands = String::from_utf8_lossy(&output.stdout).to_lowercase();
     let minecraft = commands.contains("net.minecraft.client.main.main")
         || commands.contains("--versiontype fabric")
-        || commands.contains("fabric-loader");
+        || commands.contains("fabric-loader")
+        || commands.contains("tlauncher");
     if !minecraft { return false; }
     game.and_then(Path::to_str).map(|path| commands.contains(&path.to_lowercase())).unwrap_or(true)
 }
@@ -138,6 +157,108 @@ pub fn detect(selected: Option<String>) -> DetectionReport {
     DetectionReport { game_dir: None, mods_dir: None, minecraft_found: false, minecraft_running: running, launcher_found: launcher.is_some(), version_1211: false, fabric_installed: false, fabric_api_installed: false, autominer_installed: false, config_found: false, launcher_path: launcher.map(|path| path.to_string_lossy().into()), minecraft_version: None, fabric_loader_version: None, fabric_api_version: None, autominer_version: None }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn is_target_version_id_requires_fabric_and_game_version() {
+        assert!(is_target_version_id("fabric-loader-0.15.11-1.21.1"));
+        assert!(!is_target_version_id("1.21.1"));
+        assert!(!is_target_version_id("fabric-loader-0.15.11-1.20.1"));
+    }
+
+    #[test]
+    fn matching_jar_version_picks_highest_sorted_name() {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("fabric-api-0.100.0.jar"), b"").unwrap();
+        fs::write(dir.path().join("fabric-api-0.99.0.jar"), b"").unwrap();
+        fs::write(dir.path().join("not-a-mod.txt"), b"").unwrap();
+        let (found, version) = matching_jar_version(dir.path(), "fabric-api-");
+        assert!(found);
+        assert_eq!(version.as_deref(), Some("0.100.0"));
+    }
+
+    #[test]
+    fn matching_jar_version_none_when_absent() {
+        let dir = tempdir().unwrap();
+        let (found, version) = matching_jar_version(dir.path(), "autominer-");
+        assert!(!found);
+        assert!(version.is_none());
+    }
+
+    #[test]
+    fn fabric_loader_version_detects_matching_folder() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join(format!("fabric-loader-0.15.11-{GAME_VERSION}"))).unwrap();
+        fs::create_dir_all(dir.path().join("1.20.4")).unwrap();
+        assert_eq!(fabric_loader_version(dir.path()).as_deref(), Some("0.15.11"));
+    }
+
+    #[test]
+    fn fabric_loader_version_none_without_match() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("1.20.4")).unwrap();
+        assert!(fabric_loader_version(dir.path()).is_none());
+    }
+
+    #[test]
+    fn validate_game_dir_accepts_direct_version_install() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("versions").join(GAME_VERSION)).unwrap();
+        assert!(validate_game_dir(dir.path()).is_ok());
+    }
+
+    #[test]
+    fn validate_game_dir_accepts_mods_subfolder_as_alias() {
+        let dir = tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("versions").join(GAME_VERSION)).unwrap();
+        let mods = dir.path().join("mods");
+        fs::create_dir_all(&mods).unwrap();
+        assert!(validate_game_dir(&mods).is_ok());
+    }
+
+    #[test]
+    fn validate_game_dir_rejects_unrelated_folder() {
+        let dir = tempdir().unwrap();
+        assert!(validate_game_dir(dir.path()).is_err());
+    }
+
+    #[test]
+    fn tlauncher_profile_dirs_parses_nested_profiles() {
+        let root = tempdir().unwrap();
+        let instance = tempdir().unwrap();
+        let json = serde_json::json!({
+            "profiles": {
+                "group1": {
+                    "profileA": {
+                        "lastVersionId": format!("fabric-loader-0.15.11-{GAME_VERSION}"),
+                        "gameDir": instance.path().to_string_lossy()
+                    }
+                }
+            }
+        });
+        fs::write(root.path().join("tlauncher_profiles.json"), serde_json::to_vec(&json).unwrap()).unwrap();
+        let dirs = tlauncher_profile_dirs(root.path());
+        assert_eq!(dirs.len(), 1);
+        assert_eq!(dirs[0], instance.path());
+    }
+
+    #[test]
+    fn tlauncher_profile_dirs_empty_when_file_missing() {
+        let root = tempdir().unwrap();
+        assert!(tlauncher_profile_dirs(root.path()).is_empty());
+    }
+
+    #[test]
+    fn resolve_mods_dir_falls_back_to_game_mods() {
+        let dir = tempdir().unwrap();
+        assert_eq!(resolve_mods_dir(dir.path()), dir.path().join("mods"));
+    }
+}
+
 pub fn find_launcher() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
@@ -145,9 +266,29 @@ pub fn find_launcher() -> Option<PathBuf> {
             dirs::data_dir().map(|p| p.join(".minecraft/MinecraftLauncher.exe")),
             std::env::var_os("ProgramFiles(x86)").map(PathBuf::from).map(|p| p.join("Minecraft Launcher/MinecraftLauncher.exe")),
             std::env::var_os("ProgramFiles").map(PathBuf::from).map(|p| p.join("Minecraft Launcher/MinecraftLauncher.exe")),
+            std::env::var_os("ProgramFiles(x86)").map(PathBuf::from).map(|p| p.join("TLauncher/TLauncher.exe")),
+            std::env::var_os("ProgramFiles").map(PathBuf::from).map(|p| p.join("TLauncher/TLauncher.exe")),
+            dirs::data_local_dir().map(|p| p.join("TLauncher/TLauncher.exe")),
+            dirs::home_dir().map(|p| p.join("AppData/Local/TLauncher/TLauncher.exe")),
+            dirs::desktop_dir().map(|p| p.join("TLauncher.exe")),
         ];
         candidates.into_iter().flatten().find(|p| p.is_file())
     }
-    #[cfg(not(target_os = "windows"))]
-    { None }
+    #[cfg(target_os = "macos")]
+    {
+        let candidates = [
+            Some(PathBuf::from("/Applications/TLauncher.app")),
+            dirs::home_dir().map(|p| p.join("Applications/TLauncher.app")),
+        ];
+        candidates.into_iter().flatten().find(|p| p.exists())
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let candidates = [
+            dirs::home_dir().map(|p| p.join(".local/share/TLauncher/TLauncher.jar")),
+            dirs::home_dir().map(|p| p.join("TLauncher.jar")),
+            Some(PathBuf::from("/opt/TLauncher/TLauncher.jar")),
+        ];
+        candidates.into_iter().flatten().find(|p| p.is_file())
+    }
 }

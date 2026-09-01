@@ -43,11 +43,13 @@ public final class MiningAreaSession {
   }
 
   public void nextCorridor() {
-    if (phase != Phase.CORRIDOR) return;
-    if (corridor + 1 < corridorCount) { corridor++; phase = Phase.TURNING; }
-    else phase = Phase.RETURNING;
+    if (phase == Phase.CORRIDOR) {
+      if (corridor + 1 < corridorCount) { corridor++; phase = Phase.TURNING; }
+      else phase = Phase.RETURNING;
+    } else if (phase == Phase.RETURNING) {
+      phase = Phase.COMPLETE;
+    }
   }
 
   public void beginCorridor() { if (phase == Phase.TURNING) phase = Phase.CORRIDOR; }
-  public void finishReturn() { phase = Phase.COMPLETE; }
 }
