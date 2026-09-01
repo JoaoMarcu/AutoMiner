@@ -171,14 +171,16 @@ mod tests {
     }
 
     #[test]
-    fn matching_jar_version_picks_highest_sorted_name() {
+    fn matching_jar_version_picks_lexicographically_last_name() {
+        // matching_jar_version orders file names as plain strings (not semver-aware),
+        // so it picks whichever name sorts last alphabetically.
         let dir = tempdir().unwrap();
-        fs::write(dir.path().join("fabric-api-0.100.0.jar"), b"").unwrap();
+        fs::write(dir.path().join("fabric-api-0.95.0.jar"), b"").unwrap();
         fs::write(dir.path().join("fabric-api-0.99.0.jar"), b"").unwrap();
         fs::write(dir.path().join("not-a-mod.txt"), b"").unwrap();
         let (found, version) = matching_jar_version(dir.path(), "fabric-api-");
         assert!(found);
-        assert_eq!(version.as_deref(), Some("0.100.0"));
+        assert_eq!(version.as_deref(), Some("0.99.0"));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 {
   "name": "autominer-manager",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Gerenciador desktop e painel local do AutoMiner para Minecraft 1.21.1",
   "license": "MIT",
   "repository": "github:JoaoMarcu/AutoMiner",
