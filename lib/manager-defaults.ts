@@ -2,7 +2,9 @@ import type { DetectionReport } from './tauri-manager'
 
 export const EMPTY_DETECTION: DetectionReport = {
   gameDir: null,
+  modsDir: null,
   minecraftFound: false,
+  minecraftRunning: false,
   launcherFound: false,
   version1211: false,
   fabricInstalled: false,

@@ -19,7 +19,7 @@ Os arquivos oficiais estarão disponíveis na página de releases do GitHub:
 
 ## Instalação
 
-Baixe o [AutoMiner Manager para Windows](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/AutoMiner-Setup.exe) e execute o instalador. Ele não exige Node.js, Rust, Cargo ou Gradle. O Manager detecta o Game Directory, preserva outros mods e instala o AutoMiner, Fabric Loader e Fabric API compatíveis.
+Baixe o [AutoMiner Manager para Windows](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/AutoMiner-Setup.exe) e execute o instalador. Ele não exige Node.js, Rust, Cargo ou Gradle. Selecione qualquer instalação ou instância válida do Minecraft 1.21.1; o Manager identifica os arquivos sem depender do nome da pasta e instala somente o AutoMiner na pasta `mods` correta. O Fabric Loader e o Fabric API devem ser instalados pelo usuário.
 
 Também é possível baixar o [JAR do AutoMiner](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/autominer-1.0.4.jar) e colocá-lo na pasta `mods` de uma instalação Fabric 1.21.1.
 

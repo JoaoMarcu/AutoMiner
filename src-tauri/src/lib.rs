@@ -2,7 +2,6 @@ mod backups;
 mod config;
 mod download;
 mod error;
-mod fabric;
 mod installer;
 mod minecraft;
 mod paths;
@@ -16,11 +15,6 @@ use std::path::Path;
 #[tauri::command]
 fn detect_minecraft(game_dir: Option<String>) -> minecraft::DetectionReport {
     minecraft::detect(game_dir)
-}
-
-#[tauri::command]
-async fn install_fabric(game_dir: String) -> Result<String> {
-    fabric::install(&game_dir).await
 }
 
 #[tauri::command]
@@ -91,7 +85,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            detect_minecraft, install_fabric, install_all, check_release,
+            detect_minecraft, install_all, check_release,
             load_config, save_config, reset_config, list_backups,
             restore_backup, uninstall_mod, open_launcher
         ])

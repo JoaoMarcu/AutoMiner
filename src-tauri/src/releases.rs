@@ -38,20 +38,3 @@ pub async fn latest_mod_release() -> Result<ModRelease> {
         .ok_or_else(|| ManagerError::Invalid("Checksum SHA-256 malformado".into()))?;
     Ok(ModRelease { version, jar_name: jar.name.clone(), jar_url: jar.browser_download_url.clone(), sha256: Some(sha256), changelog: release.body, release_url: release.html_url })
 }
-
-#[derive(Debug, Deserialize)]
-struct ModrinthVersion { files: Vec<ModrinthFile> }
-#[derive(Debug, Deserialize)]
-struct ModrinthFile { url: String, filename: String, primary: bool, hashes: ModrinthHashes }
-#[derive(Debug, Deserialize)]
-struct ModrinthHashes { sha512: Option<String>, sha1: Option<String> }
-
-pub async fn latest_fabric_api() -> Result<(String, String, Option<String>)> {
-    let url = "https://api.modrinth.com/v2/project/P7dR8mSH/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%221.21.1%22%5D";
-    let versions: Vec<ModrinthVersion> = download::client().get(url).send().await?.error_for_status()?.json().await?;
-    let file = versions.first().and_then(|v| v.files.iter().find(|f| f.primary).or_else(|| v.files.first())).ok_or(ManagerError::NoRelease)?;
-    let sha512 = file.hashes.sha512.clone();
-    let _sha1 = file.hashes.sha1.as_ref();
-    safe_file_name(&file.filename)?;
-    Ok((file.filename.clone(), file.url.clone(), sha512))
-}

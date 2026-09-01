@@ -4,7 +4,9 @@ import { invoke } from '@tauri-apps/api/core'
 
 export interface DetectionReport {
   gameDir: string | null
+  modsDir: string | null
   minecraftFound: boolean
+  minecraftRunning: boolean
   launcherFound: boolean
   version1211: boolean
   fabricInstalled: boolean
@@ -19,7 +21,7 @@ export interface DetectionReport {
 }
 
 export interface ModRelease { version: string; jarName: string; jarUrl: string; sha256?: string; changelog?: string; releaseUrl: string }
-export interface InstallResult { modVersion: string; modPath: string; fabricApiPath: string; backupCreated: boolean }
+export interface InstallResult { modVersion: string; modPath: string; modsDir: string; backupCreated: boolean }
 export interface BackupInfo { name: string; path: string; createdAt: number; size: number }
 
 export const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
@@ -31,7 +33,6 @@ async function call<T>(command: string, args: Record<string, unknown> = {}): Pro
 
 export const managerApi = {
   detect: (gameDir?: string) => call<DetectionReport>('detect_minecraft', { gameDir: gameDir || null }),
-  installFabric: (gameDir: string) => call<string>('install_fabric', { gameDir }),
   installAll: (gameDir: string) => call<InstallResult>('install_all', { gameDir }),
   checkRelease: () => call<ModRelease>('check_release'),
   loadConfig: (gameDir: string) => call<unknown>('load_config', { gameDir }),

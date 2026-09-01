@@ -40,7 +40,7 @@ pub fn restore(game: &Path, backup_name: &str) -> Result<()> {
     let safe = crate::paths::safe_file_name(backup_name)?;
     let source = backup_dir(game).join(safe);
     if !source.is_file() { return Err(ManagerError::Invalid("Backup não encontrado".into())); }
-    let mods = game.join("mods");
+    let mods = crate::minecraft::resolve_mods_dir(game);
     std::fs::create_dir_all(&mods)?;
     remove_autominer_jars(&mods)?;
     std::fs::copy(source, mods.join("AutoMiner-restored.jar"))?;
