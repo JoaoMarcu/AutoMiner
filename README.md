@@ -13,7 +13,7 @@ AutoMiner é um mod Fabric para Minecraft Java Edition 1.21.1, acompanhado por u
 Os arquivos oficiais estarão disponíveis na página de releases do GitHub:
 
 - [Baixar AutoMiner Manager para Windows](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/AutoMiner-Setup.exe)
-- [Baixar mod AutoMiner 1.0.4](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/autominer-1.0.4.jar)
+- [Baixar mod AutoMiner 1.0.5](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/autominer-1.0.5.jar)
 - [Baixar checksums SHA-256](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/SHA256SUMS.txt)
 - [Abrir todas as releases](https://github.com/JoaoMarcu/AutoMiner/releases)
 
@@ -21,7 +21,7 @@ Os arquivos oficiais estarão disponíveis na página de releases do GitHub:
 
 Baixe o [AutoMiner Manager para Windows](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/AutoMiner-Setup.exe) e execute o instalador. Ele não exige Node.js, Rust, Cargo ou Gradle. Selecione qualquer instalação ou instância válida do Minecraft 1.21.1; o Manager identifica os arquivos sem depender do nome da pasta e instala somente o AutoMiner na pasta `mods` correta. O Fabric Loader e o Fabric API devem ser instalados pelo usuário.
 
-Também é possível baixar o [JAR do AutoMiner](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/autominer-1.0.4.jar) e colocá-lo na pasta `mods` de uma instalação Fabric 1.21.1.
+Também é possível baixar o [JAR do AutoMiner](https://github.com/JoaoMarcu/AutoMiner/releases/latest/download/autominer-1.0.5.jar) e colocá-lo na pasta `mods` de uma instalação Fabric 1.21.1.
 
 ## Uso e configuração
 
@@ -39,9 +39,9 @@ O mod é compilado com Java 21 e Gradle Wrapper. O Manager é compilado com Next
 
 Verifique as regras do servidor antes de usar automação. O usuário é responsável por respeitar os termos do servidor e do Minecraft. AutoMiner não é afiliado à Mojang Studios ou Microsoft.
 
-## Publicação v1.0.4
+## Publicação v1.0.5
 
-A tag `v1.0.4` dispara `.github/workflows/release.yml` e publica automaticamente os artefatos após os builds passarem. A release será criada em [Releases](https://github.com/JoaoMarcu/AutoMiner/releases).
+A tag `v1.0.5` dispara `.github/workflows/release.yml` e publica automaticamente os artefatos após os builds passarem. A release será criada em [Releases](https://github.com/JoaoMarcu/AutoMiner/releases).
 
 ## Licença
 
